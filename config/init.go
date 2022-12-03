@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const projectDirName = "article-good-decrement"
+const projectDirName = "contentful-good-decrement-lambda"
 
 // LoadContentfulEnv は Contentful SDK の接続情報を環境変数から読み込む
 func LoadContentfulEnv() (string, string, error) {
