@@ -15,10 +15,12 @@ import (
 	contentful "github.com/contentful-labs/contentful-go"
 )
 
+// Response は正常系のレスポンスを定義した構造体
 type Response struct {
 	GoodCount int `json:"goodCount"`
 }
 
+// Response は異常系のレスポンスを定義した構造体
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
@@ -55,6 +57,7 @@ func main() {
 	lambda.Start(controller)
 }
 
+// isLocal はローカル環境の実行であるかを判定する
 func isLocal(t *bool, ID *string) (bool, error) {
 	if !*t {
 		return false, nil
@@ -68,6 +71,7 @@ func isLocal(t *bool, ID *string) (bool, error) {
 	return true, nil
 }
 
+// localController はローカル環境での実行処理を行う
 func localController(ID *string) {
 	js, err := useCase(*ID)
 	if err != nil {
@@ -77,6 +81,7 @@ func localController(ID *string) {
 	fmt.Println(js)
 }
 
+// controller はAPI Gateway / AWS Lambda 上での実行処理を行う
 func controller(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	articleID := request.PathParameters["article_id"]
 	if articleID == "" {
@@ -92,6 +97,7 @@ func controller(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	return responseSuccess(js)
 }
 
+// useCase はアプリケーションのIFに依存しないメインの処理を行う
 func useCase(articleID string) (string, error) {
 	// Contentful SDK のクライアントインスタンスを生成する
 	var err error
@@ -127,6 +133,7 @@ func useCase(articleID string) (string, error) {
 	return string(jb), nil
 }
 
+// responseBadRequestError はリクエスト不正のレスポンスを生成する
 func responseBadRequestError(rerr error) (events.APIGatewayProxyResponse, error) {
 	b := ErrorResponse{
 		Error:   "bad request",
@@ -151,6 +158,7 @@ func responseBadRequestError(rerr error) (events.APIGatewayProxyResponse, error)
 	return r, nil
 }
 
+// responseInternalServerError はシステムエラーのレスポンスを生成する
 func responseInternalServerError(rerr error) (events.APIGatewayProxyResponse, error) {
 	b := ErrorResponse{
 		Error:   "internal server error",
@@ -175,6 +183,7 @@ func responseInternalServerError(rerr error) (events.APIGatewayProxyResponse, er
 	return r, nil
 }
 
+// responseSuccess は処理成功時のレスポンスを生成する
 func responseSuccess(body string) (events.APIGatewayProxyResponse, error) {
 	r := events.APIGatewayProxyResponse{
 		StatusCode: 200,
@@ -184,6 +193,7 @@ func responseSuccess(body string) (events.APIGatewayProxyResponse, error) {
 	return r, nil
 }
 
+// decrement はContentfulに対していいね数のデクリメントを行う
 func decrement(articleID string) (int, error) {
 	article, err := article(articleID)
 	if err != nil {
@@ -203,14 +213,14 @@ func decrement(articleID string) (int, error) {
 		rg = g - 1
 	}
 
-	// Contentfulから取得した記事情報に、ローカルで管理されている記事の本文を反映する
+	// Contentfulから取得した記事の entry にインクリメントされたいいね数を反映するため、フィールドにセットする
 	fg, err := pkgrp.IntToField(rg)
 	if err != nil {
 		return 0, err
 	}
 	article.Fields["goods"] = fg
 
-	// ローカルで管理されている記事の本文を、Contentfulへ反映する
+	// Contentfulへ反映する
 	if err := cma.Entries.Upsert(space.Sys.ID, article); err != nil {
 		return 0, err
 	}
@@ -218,6 +228,7 @@ func decrement(articleID string) (int, error) {
 	return rg, nil
 }
 
+// article はいいね数を含む記事の entry を取得する
 func article(articleID string) (*contentful.Entry, error) {
 	article, err := cma.Entries.Get(space.Sys.ID, articleID)
 	if err != nil {
@@ -232,6 +243,7 @@ func article(articleID string) (*contentful.Entry, error) {
 	return article, nil
 }
 
+// goods は記事の entry からいいね数を取得する
 func goods(article *contentful.Entry) (int, error) {
 	// いいね数を取得する
 	g, err := pkgga.GoodsAttr(article)
